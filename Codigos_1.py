@@ -92,4 +92,10 @@ a = (re.match(regex, "http://www.example.com/") is not None) # True
 b = (re.match(regex, "example.com") is not None) #False
 print(a)
 print(b)
+
 ########################################
+#OBTENER EL NOMBRE DE UNA VARIABLE POR ITERACION DE LOCALS
+value = 34
+
+my_var_name = [ k for k,v in locals().items() if v is value][0]
+print(my_var_name)
