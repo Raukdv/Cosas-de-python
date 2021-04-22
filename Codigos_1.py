@@ -99,3 +99,8 @@ value = 34
 
 my_var_name = [ k for k,v in locals().items() if v is value][0]
 print(my_var_name)
+
+#Generador de codigo de 128Bits string
+import random
+hash = random.getrandbits(128)
+print(hex(hash))
