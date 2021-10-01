@@ -104,3 +104,116 @@ print(my_var_name)
 import random
 hash = random.getrandbits(128)
 print(hex(hash))
+
+
+######################################################
+#CODIGO PARA LISTAR LLAMADAS DE SIGNALWIRE Y LAS EXPORTA A EXCEL
+def get_signal_records():
+    import csv
+    import pandas as pd # pip install pandas
+    import numpy as np  #pip install numpy
+    import requests as r #pip install requests
+    import json
+    import time
+    from signalwire.rest import Client as signalwire_client #pip install signalwire o pipenv install signalwire
+
+    signalwire_space_url='example.signalwire.com' #SPACE URL
+    project_id='XXXXXXXXXXXXXXXXXXXXXXX' #PROJECT ID // ACCOUNT ID
+    token='xDXdxDXdxDXdXdXdx' #API TOKEN / AUHT TOKEN
+    full_url = 'https://'+signalwire_space_url #SUSPECT URT
+    files_url='https://files.signalwire.com/xxxxxxxxxxxxx/' #SUSPECT FILES URL, YOU WILL FIND THIS URL IN THE FILES OF RECORDS (MP3 OR WAV) THIS ACT AS UNIQUE URL FOR YOU PROJECT
+    
+    #conexion con el cliente, es decir tu cuenta
+    client = signalwire_client(
+        'ProjectID', 
+        'APITOKEN', 
+        signalwire_space_url='example.signalwire.com'
+        )
+    
+    #Listado por rango de fechas
+    calls = client.calls.list(start_time_after=datetime(2021, 8, 31), start_time_before=datetime(2021, 10, 1))
+    
+    with open('signalwire.csv', 'w', newline='') as csvfile:
+        fieldnames = [
+            'account_sid', 
+            'sid', 
+            'phone_number_sid', 
+            'duration', 
+            'start_time',
+            'end_time',
+            'from',
+            'to',
+            'direction',
+            'date_created',
+            'in_signalwire',
+            'files_mp3',
+            'files_wav',
+            ]
+
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for record in calls:
+            print('Starting excel create proccess for:' +str(record.sid))
+
+            uris_records = record.subresource_uris
+            uri = uris_records['recordings']
+            final_uri = full_url+uri
+
+            print('Requesting proccess for:'+str(record.sid))
+
+            con = r.get(final_uri+'.json',
+            auth=(project_id, token),
+            headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'},
+            )
+
+            print(con.status_code)
+            if con.status_code == 200:
+                print('Request accept with 200 for: '+str(record.sid))
+                print('Starting urls files format')
+
+                return_value = json.loads(con.content.decode('utf-8'))
+                        
+                id_record = return_value['recordings'] if 'recordings' in return_value and return_value['recordings'] != None else None
+
+                if id_record:
+                    print('Record for: '+str(record.sid))
+                    id_record=id_record[0]
+                    in_signalwire_url = full_url+'/laml-recordings/'+str(id_record['sid'])
+                    mp3_url = files_url+project_id+'/recordings/'+id_record['sid']+'.mp3'
+                    wav_url = files_url+project_id+'/recordings/'+id_record['sid']+'.wav'
+                else:
+                    print('No Records for: '+str(record.sid))
+                    in_signalwire_url = 'Theres no records in this call'
+                    mp3_url = 'Theres no records in this call'
+                    wav_url = 'Theres no records in this call'                   
+            else:
+                print('Request denied with {con.status_code} for: '+str(record.sid))
+                in_signalwire_url = 'Theres no records in this call'
+                mp3_url = 'Theres no records in this call'
+                wav_url = 'Theres no records in this call'
+
+            writer.writerow(
+                {'account_sid': record.account_sid,
+                'sid': record.sid, 
+                'phone_number_sid': record.phone_number_sid, 
+                'duration':record.duration, 
+                'start_time': record.start_time,
+                'end_time': record.end_time,
+                'from': record.from_,
+                'to': record.to,
+                'direction': record.direction,
+                'date_created': record.date_created,
+                'in_signalwire':in_signalwire_url,
+                'files_mp3':mp3_url,
+                'files_wav':wav_url
+                }
+            )
+            
+        time.sleep(2)
+        # Reading the csv file 
+        df_new = pd.read_csv('signalwire.csv') 
+        # saving xlsx file 
+        GFG = pd.ExcelWriter('signalwire.xlsx') 
+        df_new.to_excel(GFG, index = False) 
+        GFG.save()
