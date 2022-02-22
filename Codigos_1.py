@@ -217,3 +217,34 @@ def get_signal_records():
         GFG = pd.ExcelWriter('signalwire.xlsx') 
         df_new.to_excel(GFG, index = False) 
         GFG.save()
+
+#SSL CHECKER#
+import socket
+import ssl
+import datetime
+
+def ssl_check(hostname):
+    print(hostname)
+    ssl_date_fmt = r'%b %d %H:%M:%S %Y %Z'
+    context = ssl.create_default_context()
+    conn = context.wrap_socket(socket.socket(socket.AF_INET), server_hostname=hostname,)
+    conn.settimeout(3.0)
+    try:
+        conn.connect((hostname, 443))
+        ssl_info = conn.getpeercert()
+
+        print(ssl_info)
+
+        Exp_on = datetime.datetime.strptime(ssl_info['notAfter'], ssl_date_fmt)
+        print(f'{hostname} expires on: {Exp_on}')
+        print('------------------------')
+        print('------------------------')
+    except:
+        print('domain has not SSL')
+        print('------------------------')
+        print('------------------------')
+
+domains = ['google.com.site', 'google.com']
+for hostname in domains:
+    ssl_check(hostname)
+################################################
